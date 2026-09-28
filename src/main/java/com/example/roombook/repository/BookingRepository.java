@@ -28,4 +28,8 @@ public interface BookingRepository extends JpaRepository<Booking, Long> {
             LocalDateTime startTime);
 
     List<Booking> findByOrganizerId(Long organizerId);
+
+        boolean existsByRoom_Id(Long roomId);
+
+        boolean existsByOrganizer_Id(Long organizerId);
 }
