@@ -13,7 +13,6 @@ import jakarta.validation.constraints.Positive;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Objects;
 
 @Entity
 @Table(name = "rooms")
@@ -99,15 +98,14 @@ public class Room {
         if (this == other) {
             return true;
         }
-        if (other == null || getClass() != other.getClass()) {
+        if (!(other instanceof Room room)) {
             return false;
         }
-        Room room = (Room) other;
         return id != null && id.equals(room.id);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hashCode(id);
+        return Room.class.hashCode();
     }
 }

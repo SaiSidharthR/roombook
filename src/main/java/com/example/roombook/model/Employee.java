@@ -15,7 +15,6 @@ import jakarta.validation.constraints.NotBlank;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Objects;
 
 @Entity
 @Table(name = "employees")
@@ -107,15 +106,14 @@ public class Employee {
         if (this == other) {
             return true;
         }
-        if (other == null || getClass() != other.getClass()) {
+        if (!(other instanceof Employee employee)) {
             return false;
         }
-        Employee employee = (Employee) other;
         return id != null && id.equals(employee.id);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hashCode(id);
+        return Employee.class.hashCode();
     }
 }

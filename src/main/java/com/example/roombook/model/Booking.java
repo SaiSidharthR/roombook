@@ -14,7 +14,6 @@ import jakarta.persistence.Table;
 import jakarta.validation.constraints.NotNull;
 
 import java.time.LocalDateTime;
-import java.util.Objects;
 
 @Entity
 @Table(name = "bookings")
@@ -124,15 +123,14 @@ public class Booking {
         if (this == other) {
             return true;
         }
-        if (other == null || getClass() != other.getClass()) {
+        if (!(other instanceof Booking booking)) {
             return false;
         }
-        Booking booking = (Booking) other;
         return id != null && id.equals(booking.id);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hashCode(id);
+        return Booking.class.hashCode();
     }
 }
