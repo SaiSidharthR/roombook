@@ -46,8 +46,27 @@ public class BookingService {
 
     @Transactional(readOnly = true)
     public Booking getBooking(Long id) {
-        return bookingRepository.findById(id)
+        return bookingRepository.findWithAssociationsById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Booking", id));
+    }
+
+    @Transactional(readOnly = true)
+    public Booking getBookingForActor(Long id, Long actorId, boolean administrator) {
+        Booking booking = getBooking(id);
+        verifyOwner(booking, actorId, administrator);
+        return booking;
+    }
+
+    @Transactional(readOnly = true)
+    public boolean isRoomAvailable(Long roomId, LocalDateTime startTime, LocalDateTime endTime) {
+        if (startTime == null || endTime == null || !endTime.isAfter(startTime)) {
+            throw new IllegalArgumentException("End time must be later than start time");
+        }
+        if (!roomRepository.existsById(roomId)) {
+            throw new ResourceNotFoundException("Room", roomId);
+        }
+        return bookingRepository.findOverlappingBookings(
+                roomId, BookingStatus.CONFIRMED, startTime, endTime).isEmpty();
     }
 
     public Booking createBooking(Long roomId, Long organizerId, LocalDateTime startTime, LocalDateTime endTime) {

@@ -2,12 +2,15 @@ package com.example.roombook.repository;
 
 import com.example.roombook.model.Booking;
 import com.example.roombook.model.BookingStatus;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Optional;
 
 public interface BookingRepository extends JpaRepository<Booking, Long> {
     @Query("""
@@ -27,7 +30,15 @@ public interface BookingRepository extends JpaRepository<Booking, Long> {
             BookingStatus status,
             LocalDateTime startTime);
 
-    List<Booking> findByOrganizerId(Long organizerId);
+        @Override
+        @EntityGraph(attributePaths = {"room", "organizer"})
+        List<Booking> findAll(Sort sort);
+
+        @EntityGraph(attributePaths = {"room", "organizer"})
+        List<Booking> findByOrganizerId(Long organizerId);
+
+        @EntityGraph(attributePaths = {"room", "organizer"})
+        Optional<Booking> findWithAssociationsById(Long id);
 
         boolean existsByRoom_Id(Long roomId);
 

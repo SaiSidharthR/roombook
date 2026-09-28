@@ -39,6 +39,12 @@ public class EmployeeService {
                 .orElseThrow(() -> new ResourceNotFoundException("Employee", id));
     }
 
+    @Transactional(readOnly = true)
+    public Employee getEmployeeByEmail(String email) {
+        return employeeRepository.findByEmail(email)
+                .orElseThrow(() -> new ResourceNotFoundException("Employee", email));
+    }
+
     public Employee createEmployee(Employee employee) {
         employee.setId(null);
         if (employeeRepository.existsByEmail(employee.getEmail())) {
