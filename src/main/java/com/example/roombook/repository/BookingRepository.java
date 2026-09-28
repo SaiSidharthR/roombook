@@ -26,6 +26,21 @@ public interface BookingRepository extends JpaRepository<Booking, Long> {
             @Param("requestedStart") LocalDateTime requestedStart,
             @Param("requestedEnd") LocalDateTime requestedEnd);
 
+    @Query("""
+            select b from Booking b
+            where b.room.id = :roomId
+              and b.status = :status
+              and b.id <> :excludedBookingId
+              and b.startTime < :requestedEnd
+              and b.endTime > :requestedStart
+            """)
+    List<Booking> findOtherOverlappingBookings(
+            @Param("roomId") Long roomId,
+            @Param("status") BookingStatus status,
+            @Param("requestedStart") LocalDateTime requestedStart,
+            @Param("requestedEnd") LocalDateTime requestedEnd,
+            @Param("excludedBookingId") Long excludedBookingId);
+
     List<Booking> findByStatusAndCheckedInFalseAndStartTimeLessThanEqual(
             BookingStatus status,
             LocalDateTime startTime);
@@ -36,6 +51,19 @@ public interface BookingRepository extends JpaRepository<Booking, Long> {
 
         @EntityGraph(attributePaths = {"room", "organizer"})
         List<Booking> findByOrganizerId(Long organizerId);
+
+        @EntityGraph(attributePaths = {"room", "organizer"})
+        List<Booking> findByStartTimeLessThanAndEndTimeGreaterThan(
+                java.time.LocalDateTime dayEnd,
+                java.time.LocalDateTime dayStart,
+                Sort sort);
+
+        @EntityGraph(attributePaths = {"room", "organizer"})
+        List<Booking> findByOrganizerIdAndStartTimeLessThanAndEndTimeGreaterThan(
+                Long organizerId,
+                java.time.LocalDateTime dayEnd,
+                java.time.LocalDateTime dayStart,
+                Sort sort);
 
         @EntityGraph(attributePaths = {"room", "organizer"})
         Optional<Booking> findWithAssociationsById(Long id);

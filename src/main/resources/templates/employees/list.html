@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{layout :: head('Employees')}"></head>
+<body>
+<nav th:replace="~{layout :: navigation}"></nav>
+<div th:replace="~{layout :: flashes}"></div>
+<main class="container-xl page-wrap">
+    <header class="page-heading">
+        <div><p class="eyebrow">ADMINISTRATION</p><h1>Employees</h1><p class="page-subtitle">Manage RoomBook accounts and access levels.</p></div>
+        <a class="btn btn-brand" th:href="@{/employees/new}"><i class="bi bi-person-plus me-2"></i>Add employee</a>
+    </header>
+    <section th:if="${#lists.isEmpty(employees.content)}" class="empty-state">
+        <span class="empty-icon"><i class="bi bi-people"></i></span><h3>No employee accounts yet</h3><p>Add colleagues so they can reserve meeting spaces.</p>
+        <a class="btn btn-brand" th:href="@{/employees/new}">Add an employee</a>
+    </section>
+    <section th:unless="${#lists.isEmpty(employees.content)}" class="table-responsive schedule-table-wrap">
+        <table class="table align-middle schedule-table">
+            <thead><tr><th>EMPLOYEE</th><th>DEPARTMENT</th><th>ACCESS</th><th class="text-end">ACTIONS</th></tr></thead>
+            <tbody><tr th:each="employee : ${employees.content}">
+                <td><div class="person-cell"><span class="avatar-mark" th:text="${#strings.substring(employee.name, 0, 1).toUpperCase()}">A</span><span><strong th:text="${employee.name}"></strong><small th:text="${employee.email}"></small></span></div></td>
+                <td th:text="${employee.department}"></td>
+                <td><span class="role-pill" th:classappend="${employee.role.name() == 'ADMIN'} ? ' role-admin' : ''" th:text="${employee.role}"></span></td>
+                <td><div class="table-actions">
+                    <a class="btn btn-sm btn-outline-dark" th:href="@{/employees/{id}/edit(id=${employee.id})}" aria-label="Edit employee"><i class="bi bi-pencil"></i></a>
+                    <form th:action="@{/employees/{id}/delete(id=${employee.id})}" method="post" onsubmit="return confirm('Delete this employee account?')">
+                        <button class="btn btn-sm btn-outline-danger" type="submit" aria-label="Delete employee"><i class="bi bi-trash"></i></button>
+                    </form>
+                </div></td>
+            </tr></tbody>
+        </table>
+    </section>
+    <nav th:if="${employees.totalPages > 1}" class="pagination-row" aria-label="Employee pages">
+        <a class="btn btn-sm btn-outline-dark" th:classappend="${employees.first} ? ' disabled'" th:href="@{/employees(page=${employees.number - 1})}"><i class="bi bi-arrow-left"></i> Previous</a>
+        <span th:text="|Page ${employees.number + 1} of ${employees.totalPages}|">Page 1</span>
+        <a class="btn btn-sm btn-outline-dark" th:classappend="${employees.last} ? ' disabled'" th:href="@{/employees(page=${employees.number + 1})}">Next <i class="bi bi-arrow-right"></i></a>
+    </nav>
+</main>
+<script th:replace="~{layout :: scripts}"></script>
+</body>
+</html>

@@ -16,6 +16,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.time.LocalDate;
 import java.util.List;
 
 @Service
@@ -42,6 +43,20 @@ public class BookingService {
     @Transactional(readOnly = true)
     public List<Booking> listBookingsForEmployee(Long employeeId) {
         return bookingRepository.findByOrganizerId(employeeId);
+    }
+
+    @Transactional(readOnly = true)
+    public List<Booking> listBookingsForDay(LocalDate day) {
+        LocalDateTime start = day.atStartOfDay();
+        return bookingRepository.findByStartTimeLessThanAndEndTimeGreaterThan(
+                start.plusDays(1), start, Sort.by(Sort.Direction.ASC, "startTime"));
+    }
+
+    @Transactional(readOnly = true)
+    public List<Booking> listBookingsForEmployeeOnDay(Long employeeId, LocalDate day) {
+        LocalDateTime start = day.atStartOfDay();
+        return bookingRepository.findByOrganizerIdAndStartTimeLessThanAndEndTimeGreaterThan(
+                employeeId, start.plusDays(1), start, Sort.by(Sort.Direction.ASC, "startTime"));
     }
 
     @Transactional(readOnly = true)
@@ -96,6 +111,38 @@ public class BookingService {
         return bookingRepository.save(booking);
     }
 
+    public Booking updateBooking(
+            Long bookingId,
+            Long roomId,
+            Long actorId,
+            boolean administrator,
+            LocalDateTime startTime,
+            LocalDateTime endTime) {
+        validateTimeRange(startTime, endTime);
+        if (!startTime.isAfter(LocalDateTime.now())) {
+            throw new IllegalArgumentException("Booking start time must be in the future");
+        }
+
+        Booking booking = getBooking(bookingId);
+        verifyOwner(booking, actorId, administrator);
+        if (booking.getStatus() != BookingStatus.CONFIRMED || booking.isCheckedIn()) {
+            throw new IllegalStateException("Only unchecked-in confirmed bookings can be changed");
+        }
+
+        Room room = roomRepository.findByIdForUpdate(roomId)
+                .orElseThrow(() -> new ResourceNotFoundException("Room", roomId));
+        List<Booking> overlaps = bookingRepository.findOtherOverlappingBookings(
+                roomId, BookingStatus.CONFIRMED, startTime, endTime, bookingId);
+        if (!overlaps.isEmpty()) {
+            throw new BookingConflictException();
+        }
+
+        booking.setRoom(room);
+        booking.setStartTime(startTime);
+        booking.setEndTime(endTime);
+        return bookingRepository.save(booking);
+    }
+
     public Booking cancelBooking(Long bookingId, Long actorId, boolean administrator) {
         Booking booking = getBooking(bookingId);
         verifyOwner(booking, actorId, administrator);
@@ -128,6 +175,12 @@ public class BookingService {
     private void verifyOwner(Booking booking, Long actorId, boolean administrator) {
         if (!administrator && !booking.getOrganizer().getId().equals(actorId)) {
             throw new AccessDeniedException("You may only manage your own bookings");
+        }
+    }
+
+    private void validateTimeRange(LocalDateTime startTime, LocalDateTime endTime) {
+        if (startTime == null || endTime == null || !endTime.isAfter(startTime)) {
+            throw new IllegalArgumentException("End time must be later than start time");
         }
     }
 }

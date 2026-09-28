@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{layout :: head('Sign in')}"></head>
+<body class="login-page">
+<main class="login-shell">
+    <section class="login-panel">
+        <a class="login-brand" th:href="@{/login}">
+            <span class="brand-mark"><i class="bi bi-grid-1x2-fill"></i></span>
+            <span>RoomBook</span>
+        </a>
+        <div class="login-copy">
+            <p class="eyebrow">MEETING SPACE, MADE SIMPLE</p>
+            <h1>Welcome back.</h1>
+            <p class="text-secondary">Sign in to find a room and get your team together.</p>
+        </div>
+        <div th:if="${param.error}" class="alert alert-danger" role="alert">Email or password was not recognized.</div>
+        <div th:if="${param.logout}" class="alert alert-success" role="status">You have signed out.</div>
+        <form th:action="@{/login}" method="post" class="login-form">
+            <label for="username" class="form-label">Work email</label>
+            <input id="username" name="username" type="email" class="form-control form-control-lg" autocomplete="username" required autofocus>
+            <label for="password" class="form-label mt-3">Password</label>
+            <input id="password" name="password" type="password" class="form-control form-control-lg" autocomplete="current-password" required>
+            <button type="submit" class="btn btn-brand btn-lg w-100 mt-4">Sign in <i class="bi bi-arrow-right ms-2"></i></button>
+        </form>
+        <p class="login-footnote">Room access for your organization</p>
+    </section>
+    <aside class="login-aside" aria-label="RoomBook workspace">
+        <div class="aside-grid" aria-hidden="true"></div>
+        <div class="aside-content">
+            <span class="aside-kicker">A better room for</span>
+            <h2>good work<br>together.</h2>
+            <div class="aside-rule"></div>
+            <p>Find the right space. Make the time count.</p>
+        </div>
+        <div class="aside-bottom"><span>RB / WORKSPACE</span><span>01 — 03</span></div>
+    </aside>
+</main>
+<script th:replace="~{layout :: scripts}"></script>
+</body>
+</html>

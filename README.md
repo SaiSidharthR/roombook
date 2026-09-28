@@ -22,6 +22,8 @@ RoomBook is a Java 17 / Spring Boot 3 REST API for meeting-room scheduling. It u
 
 The bootstrap administrator is created only when both bootstrap variables are set and that email does not already exist. Employee passwords are stored with BCrypt. Never use the example password outside local development.
 
+The browser UI is served from `/login` after startup. Sign in with a database employee account; the landing page is the daily dashboard. Configure the bootstrap-admin environment variables before first startup if the database has no administrator account.
+
 ## Authorization
 
 All API routes require HTTP Basic authentication. Admins can create, update, and delete rooms and manage employees. Employees can view rooms and manage their own bookings. Admins can view and manage all bookings. Create employee accounts with `POST /api/employees` while authenticated as an admin.
@@ -41,6 +43,20 @@ All API routes require HTTP Basic authentication. Admins can create, update, and
 | POST | `/api/bookings` | Authenticated | Create booking; returns 201 or 409 on overlap |
 | POST | `/api/bookings/{id}/cancel` | Owner or admin | Cancel confirmed booking |
 | POST | `/api/bookings/{id}/check-in` | Owner or admin | Check in to confirmed booking |
+
+## Browser pages
+
+| Path | Access | Features |
+| --- | --- | --- |
+| `/login` | Public | Employee email/password sign-in |
+| `/` | Authenticated | Today's bookings and summary counts |
+| `/rooms` | Authenticated | Room directory, pagination, and booking shortcuts |
+| `/rooms/new`, `/rooms/{id}/edit` | Admin | Room creation and editing |
+| `/employees` | Admin | Employee directory, pagination, create, edit, and delete |
+| `/bookings` | Authenticated | Own bookings; administrators see all bookings |
+| `/bookings/new`, `/bookings/{id}/edit` | Authenticated owner or admin | Create and reschedule bookings, with availability check |
+
+Bookings are cancelled rather than hard-deleted so the system retains booking history. Owners and administrators can cancel confirmed bookings or check in; only unchecked-in confirmed bookings can be rescheduled.
 
 Errors use JSON with `timestamp`, `status`, `error`, `message`, `path`, and `validationErrors`. Typical statuses are 400 (validation/input), 401 (missing or invalid credentials), 403 (role/ownership), 404 (missing resource), and 409 (booking/data conflict).
 

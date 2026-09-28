@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{layout :: head('Rooms')}"></head>
+<body>
+<nav th:replace="~{layout :: navigation}"></nav>
+<div th:replace="~{layout :: flashes}"></div>
+<main class="container-xl page-wrap">
+    <header class="page-heading">
+        <div><p class="eyebrow">SPACE DIRECTORY</p><h1>Rooms</h1><p class="page-subtitle">Find the setup that fits the meeting.</p></div>
+        <a th:if="${isAdmin}" class="btn btn-brand" th:href="@{/rooms/new}"><i class="bi bi-plus-lg me-2"></i>Add room</a>
+    </header>
+    <section th:if="${#lists.isEmpty(rooms.content)}" class="empty-state">
+        <span class="empty-icon"><i class="bi bi-door-open"></i></span><h3>No rooms have been added</h3><p>Room options will show here when your directory is set up.</p>
+        <a th:if="${isAdmin}" class="btn btn-brand" th:href="@{/rooms/new}">Add your first room</a>
+    </section>
+    <section th:unless="${#lists.isEmpty(rooms.content)}" class="room-grid">
+        <article class="room-item" th:each="room : ${rooms.content}">
+            <div class="room-item-top"><span class="room-symbol"><i class="bi bi-door-closed"></i></span><span class="capacity-tag"><i class="bi bi-people me-1"></i><span th:text="${room.capacity}"></span></span></div>
+            <div class="room-item-main"><p class="room-location" th:text="${room.location}">LOCATION</p><h2 th:text="${room.name}">Room name</h2>
+                <div class="amenity-list">
+                    <span th:if="${room.hasProjector}" class="amenity"><i class="bi bi-projector me-1"></i>Projector</span>
+                    <span th:if="${room.hasWhiteboard}" class="amenity"><i class="bi bi-easel me-1"></i>Whiteboard</span>
+                    <span th:unless="${room.hasProjector or room.hasWhiteboard}" class="amenity text-secondary">Standard setup</span>
+                </div>
+            </div>
+            <div class="room-item-actions">
+                <a class="btn btn-sm btn-brand" th:href="@{/bookings/new(roomId=${room.id})}"><i class="bi bi-calendar-plus me-1"></i>Book room</a>
+                <div th:if="${isAdmin}" class="d-flex gap-2">
+                    <a class="btn btn-sm btn-outline-dark" th:href="@{/rooms/{id}/edit(id=${room.id})}" aria-label="Edit room"><i class="bi bi-pencil"></i></a>
+                    <form th:action="@{/rooms/{id}/delete(id=${room.id})}" method="post" onsubmit="return confirm('Delete this room?')">
+                        <button class="btn btn-sm btn-outline-danger" type="submit" aria-label="Delete room"><i class="bi bi-trash"></i></button>
+                    </form>
+                </div>
+            </div>
+        </article>
+    </section>
+    <nav th:if="${rooms.totalPages > 1}" class="pagination-row" aria-label="Room pages">
+        <a class="btn btn-sm btn-outline-dark" th:classappend="${rooms.first} ? ' disabled'" th:href="@{/rooms(page=${rooms.number - 1})}"><i class="bi bi-arrow-left"></i> Previous</a>
+        <span th:text="|Page ${rooms.number + 1} of ${rooms.totalPages}|">Page 1</span>
+        <a class="btn btn-sm btn-outline-dark" th:classappend="${rooms.last} ? ' disabled'" th:href="@{/rooms(page=${rooms.number + 1})}">Next <i class="bi bi-arrow-right"></i></a>
+    </nav>
+</main>
+<script th:replace="~{layout :: scripts}"></script>
+</body>
+</html>

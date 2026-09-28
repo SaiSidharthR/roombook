@@ -1,0 +1,69 @@
+<!doctype html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{layout :: head('Overview')}"></head>
+<body>
+<nav th:replace="~{layout :: navigation}"></nav>
+<div th:replace="~{layout :: flashes}"></div>
+<main class="container-xl page-wrap">
+    <header class="page-heading dashboard-heading">
+        <div>
+            <p class="eyebrow" th:text="${#temporals.format(today, 'EEEE, MMMM d, yyyy')}">TODAY</p>
+            <h1>Your workday, <span class="heading-accent">well placed.</span></h1>
+            <p class="page-subtitle">Here is what is happening across your rooms today.</p>
+        </div>
+        <a class="btn btn-brand" th:href="@{/bookings/new}"><i class="bi bi-plus-lg me-2"></i>Book a room</a>
+    </header>
+
+    <section class="stats-row" aria-label="Today's summary">
+        <div class="stat-block">
+            <span class="stat-label">TODAY'S BOOKINGS</span>
+            <strong class="stat-value" th:text="${bookingCount}">0</strong>
+            <span class="stat-note">on your calendar</span>
+        </div>
+        <div class="stat-block stat-highlight">
+            <span class="stat-label">CONFIRMED</span>
+            <strong class="stat-value" th:text="${confirmedCount}">0</strong>
+            <span class="stat-note">ready to go</span>
+        </div>
+        <div class="stat-block">
+            <span class="stat-label">AVAILABLE SPACES</span>
+            <strong class="stat-value" th:text="${roomCount}">0</strong>
+            <span class="stat-note">rooms in the directory</span>
+        </div>
+        <div class="stat-block" th:if="${isAdmin}">
+            <span class="stat-label">EMPLOYEES</span>
+            <strong class="stat-value" th:text="${employeeCount}">0</strong>
+            <span class="stat-note">active accounts</span>
+        </div>
+    </section>
+
+    <section class="content-section">
+        <div class="section-heading">
+            <div><p class="eyebrow">YOUR SCHEDULE</p><h2>Today's bookings</h2></div>
+            <a class="text-link" th:href="@{/bookings}">All bookings <i class="bi bi-arrow-up-right ms-1"></i></a>
+        </div>
+        <div th:if="${#lists.isEmpty(todayBookings)}" class="empty-state">
+            <span class="empty-icon"><i class="bi bi-calendar2-check"></i></span>
+            <h3>Nothing on the schedule yet</h3>
+            <p>Pick a room and give your next meeting a place to happen.</p>
+            <a class="btn btn-brand" th:href="@{/bookings/new}">Make a booking</a>
+        </div>
+        <div th:unless="${#lists.isEmpty(todayBookings)}" class="table-responsive schedule-table-wrap">
+            <table class="table align-middle schedule-table">
+                <thead><tr><th>TIME</th><th>MEETING SPACE</th><th>ORGANIZER</th><th>STATUS</th><th></th></tr></thead>
+                <tbody>
+                <tr th:each="booking : ${todayBookings}">
+                    <td class="time-cell"><span th:text="${#temporals.format(booking.startTime, 'h:mm a')}"></span><small th:text="${#temporals.format(booking.endTime, 'h:mm a')}"></small></td>
+                    <td><strong th:text="${booking.room.name}"></strong><small class="d-block text-secondary" th:text="${booking.room.location}"></small></td>
+                    <td th:text="${booking.organizer.name}"></td>
+                    <td><span class="status-pill" th:classappend="${booking.status.name() == 'CONFIRMED'} ? ' status-confirmed' : ' status-muted'" th:text="${booking.status}"></span></td>
+                    <td><a class="icon-link" th:href="@{/bookings}" aria-label="Open bookings"><i class="bi bi-arrow-up-right"></i></a></td>
+                </tr>
+                </tbody>
+            </table>
+        </div>
+    </section>
+</main>
+<script th:replace="~{layout :: scripts}"></script>
+</body>
+</html>

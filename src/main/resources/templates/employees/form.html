@@ -1,0 +1,23 @@
+<!doctype html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{layout :: head(${pageTitle})}"></head>
+<body>
+<nav th:replace="~{layout :: navigation}"></nav>
+<div th:replace="~{layout :: flashes}"></div>
+<main class="container-xl page-wrap form-page">
+    <a class="back-link" th:href="@{/employees}"><i class="bi bi-arrow-left me-2"></i>Back to employees</a>
+    <header class="page-heading compact-heading"><div><p class="eyebrow">ACCOUNT DIRECTORY</p><h1 th:text="${pageTitle}">Add an employee</h1><p class="page-subtitle">Employee passwords are stored as BCrypt hashes.</p></div></header>
+    <form class="form-surface" th:object="${employeeForm}" th:action="${creating} ? @{/employees} : @{/employees/{id}(id=${employeeForm.id})}" method="post">
+        <div class="row g-4">
+            <div class="col-md-6"><label class="form-label" for="name">Full name</label><input id="name" class="form-control" th:field="*{name}" autocomplete="name" required><div class="field-error" th:errors="*{name}"></div></div>
+            <div class="col-md-6"><label class="form-label" for="email">Work email</label><input id="email" type="email" class="form-control" th:field="*{email}" autocomplete="email" required><div class="field-error" th:errors="*{email}"></div></div>
+            <div class="col-md-6"><label class="form-label" for="department">Department</label><input id="department" class="form-control" th:field="*{department}" required><div class="field-error" th:errors="*{department}"></div></div>
+            <div class="col-md-6"><label class="form-label" for="role">Role</label><select id="role" class="form-select" th:field="*{role}"><option th:each="role : ${roles}" th:value="${role}" th:text="${role}"></option></select><div class="field-error" th:errors="*{role}"></div></div>
+            <div class="col-12"><label class="form-label" for="password">Password <span th:unless="${creating}" class="text-secondary fw-normal">(leave blank to keep current)</span></label><input id="password" type="password" class="form-control" th:field="*{password}" autocomplete="new-password" th:required="${creating}"><div class="field-error" th:errors="*{password}"></div></div>
+        </div>
+        <div class="form-actions"><a class="btn btn-outline-dark" th:href="@{/employees}">Cancel</a><button class="btn btn-brand" type="submit"><i class="bi bi-check2 me-2"></i>Save employee</button></div>
+    </form>
+</main>
+<script th:replace="~{layout :: scripts}"></script>
+</body>
+</html>

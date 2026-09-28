@@ -1,0 +1,59 @@
+<!doctype html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{layout :: head('Book a room')}"></head>
+<body>
+<nav th:replace="~{layout :: navigation}"></nav>
+<div th:replace="~{layout :: flashes}"></div>
+<main class="container-xl page-wrap form-page">
+    <a class="back-link" th:href="@{/bookings}"><i class="bi bi-arrow-left me-2"></i>Back to bookings</a>
+    <header class="page-heading compact-heading"><div><p class="eyebrow" th:text="${editing} ? 'UPDATE RESERVATION' : 'RESERVE A SPACE'">RESERVE A SPACE</p><h1 th:text="${editing} ? 'Change booking' : 'Book a room'">Book a room</h1><p class="page-subtitle">Choose a room and a time. Your reservation is checked before it is confirmed.</p></div></header>
+    <div th:if="${formError}" class="alert alert-danger booking-conflict" role="alert"><i class="bi bi-exclamation-triangle-fill me-2"></i><strong>That time is unavailable.</strong> <span th:text="${formError}"></span></div>
+    <form class="form-surface" th:object="${bookingForm}" th:action="${editing} ? @{/bookings/{id}(id=${bookingId})} : @{/bookings}" method="post">
+        <div th:if="${#fields.hasErrors('*')}" class="alert alert-danger" role="alert"><strong>Please review the highlighted fields.</strong></div>
+        <div class="row g-4">
+            <div class="col-12"><label class="form-label" for="roomId">Meeting room</label>
+                <select id="roomId" class="form-select" th:field="*{roomId}" required>
+                    <option value="">Choose a room</option>
+                    <option th:each="room : ${rooms}" th:value="${room.id}" th:text="|${room.name} · ${room.location} · ${room.capacity} seats${room.hasProjector ? ' · Projector' : ''}${room.hasWhiteboard ? ' · Whiteboard' : ''}|"></option>
+                </select><div class="field-error" th:errors="*{roomId}"></div>
+                <div class="availability-row"><button id="checkAvailability" class="btn btn-sm btn-outline-dark" type="button"><i class="bi bi-search me-1"></i>Check availability</button><span id="availabilityResult" aria-live="polite"></span></div>
+            </div>
+            <div class="col-md-6"><label class="form-label" for="startTime">Starts</label><input id="startTime" type="datetime-local" class="form-control" th:field="*{startTime}" required><div class="field-error" th:errors="*{startTime}"></div></div>
+            <div class="col-md-6"><label class="form-label" for="endTime">Ends</label><input id="endTime" type="datetime-local" class="form-control" th:field="*{endTime}" required><div class="field-error" th:errors="*{endTime}"></div></div>
+            <div class="col-12"><div class="field-error" th:errors="*{endTimeAfterStartTime}"></div></div>
+        </div>
+        <div class="form-actions"><a class="btn btn-outline-dark" th:href="@{/bookings}">Cancel</a><button class="btn btn-brand" type="submit"><i class="bi bi-calendar-check me-2"></i><span th:text="${editing} ? 'Save changes' : 'Confirm booking'">Confirm booking</span></button></div>
+    </form>
+</main>
+<script th:replace="~{layout :: scripts}"></script>
+<script>
+    const availabilityButton = document.getElementById('checkAvailability');
+    availabilityButton.addEventListener('click', async () => {
+        const result = document.getElementById('availabilityResult');
+        const roomId = document.getElementById('roomId').value;
+        const startTime = document.getElementById('startTime').value;
+        const endTime = document.getElementById('endTime').value;
+        if (!roomId || !startTime || !endTime) {
+            result.textContent = 'Choose a room and both times first.';
+            result.className = 'availability-note availability-warn';
+            return;
+        }
+        availabilityButton.disabled = true;
+        result.textContent = 'Checking…';
+        try {
+            const query = new URLSearchParams({ roomId, startTime, endTime });
+            const response = await fetch(`/bookings/availability?${query}`);
+            if (!response.ok) throw new Error('Availability could not be checked.');
+            const available = await response.json();
+            result.textContent = available ? 'Available for this time.' : 'This room is already booked then.';
+            result.className = `availability-note ${available ? 'availability-good' : 'availability-bad'}`;
+        } catch (error) {
+            result.textContent = error.message;
+            result.className = 'availability-note availability-bad';
+        } finally {
+            availabilityButton.disabled = false;
+        }
+    });
+</script>
+</body>
+</html>

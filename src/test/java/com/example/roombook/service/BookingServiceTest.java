@@ -85,6 +85,26 @@ class BookingServiceTest {
     }
 
     @Test
+    void updateBookingMovesReservationAndIgnoresItsOwnTimeSlot() {
+        Booking booking = confirmedBooking();
+        Room newRoom = new Room();
+        newRoom.setId(11L);
+        LocalDateTime updatedStart = startTime.plusDays(1);
+        LocalDateTime updatedEnd = updatedStart.plusHours(2);
+        when(bookingRepository.findWithAssociationsById(30L)).thenReturn(Optional.of(booking));
+        when(roomRepository.findByIdForUpdate(11L)).thenReturn(Optional.of(newRoom));
+        when(bookingRepository.findOtherOverlappingBookings(
+                11L, BookingStatus.CONFIRMED, updatedStart, updatedEnd, 30L)).thenReturn(List.of());
+        when(bookingRepository.save(booking)).thenReturn(booking);
+
+        Booking updated = bookingService.updateBooking(30L, 11L, 20L, false, updatedStart, updatedEnd);
+
+        assertEquals(newRoom, updated.getRoom());
+        assertEquals(updatedStart, updated.getStartTime());
+        assertEquals(updatedEnd, updated.getEndTime());
+    }
+
+    @Test
     void cancelBookingChangesStatusAndAllowsTheSlotToBeReused() {
         Booking booking = confirmedBooking();
         when(bookingRepository.findWithAssociationsById(30L)).thenReturn(Optional.of(booking));

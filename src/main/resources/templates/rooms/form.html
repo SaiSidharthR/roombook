@@ -1,0 +1,25 @@
+<!doctype html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{layout :: head(${pageTitle})}"></head>
+<body>
+<nav th:replace="~{layout :: navigation}"></nav>
+<div th:replace="~{layout :: flashes}"></div>
+<main class="container-xl page-wrap form-page">
+    <a class="back-link" th:href="@{/rooms}"><i class="bi bi-arrow-left me-2"></i>Back to rooms</a>
+    <header class="page-heading compact-heading"><div><p class="eyebrow">ROOM DIRECTORY</p><h1 th:text="${pageTitle}">Add a room</h1><p class="page-subtitle">Set the capacity and equipment available in this space.</p></div></header>
+    <form class="form-surface" th:object="${room}" th:action="${room.id == null} ? @{/rooms} : @{/rooms/{id}(id=${room.id})}" method="post">
+        <div class="row g-4">
+            <div class="col-md-7"><label class="form-label" for="name">Room name</label><input id="name" class="form-control" th:field="*{name}" required><div class="field-error" th:errors="*{name}"></div></div>
+            <div class="col-md-5"><label class="form-label" for="location">Location</label><input id="location" class="form-control" th:field="*{location}" placeholder="Building / floor" required><div class="field-error" th:errors="*{location}"></div></div>
+            <div class="col-md-5"><label class="form-label" for="capacity">Capacity</label><input id="capacity" type="number" min="1" class="form-control" th:field="*{capacity}" required><div class="field-error" th:errors="*{capacity}"></div></div>
+            <div class="col-md-7"><span class="form-label d-block">Equipment</span><div class="equipment-options">
+                <label class="equipment-option"><input type="checkbox" th:field="*{hasProjector}"><span><i class="bi bi-projector"></i> Projector</span></label>
+                <label class="equipment-option"><input type="checkbox" th:field="*{hasWhiteboard}"><span><i class="bi bi-easel"></i> Whiteboard</span></label>
+            </div></div>
+        </div>
+        <div class="form-actions"><a class="btn btn-outline-dark" th:href="@{/rooms}">Cancel</a><button class="btn btn-brand" type="submit"><i class="bi bi-check2 me-2"></i>Save room</button></div>
+    </form>
+</main>
+<script th:replace="~{layout :: scripts}"></script>
+</body>
+</html>
