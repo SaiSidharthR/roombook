@@ -1,0 +1,211 @@
+{
+  "info": {
+    "name": "RoomBook Complete API Verification",
+    "description": "Run requests in order with RoomBook running. Set adminPassword before running. The no-show test requires the SQL time adjustment described in the request description, then wait for the next minute scheduler pass.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "auth": {
+    "type": "basic",
+    "basic": [
+      { "key": "username", "value": "{{adminUsername}}", "type": "string" },
+      { "key": "password", "value": "{{adminPassword}}", "type": "string" }
+    ]
+  },
+  "variable": [
+    { "key": "baseUrl", "value": "http://localhost:8081" },
+    { "key": "adminUsername", "value": "admin@roombook.local" },
+    { "key": "adminPassword", "value": "" },
+    { "key": "employeeEmail", "value": "" },
+    { "key": "employeePassword", "value": "RoomBook-Test-Employee-2026!" },
+    { "key": "crudRoomId", "value": "" },
+    { "key": "bookingRoomId", "value": "" },
+    { "key": "employeeId", "value": "" },
+    { "key": "bookingId", "value": "" },
+    { "key": "cancelBookingId", "value": "" },
+    { "key": "noShowBookingId", "value": "" },
+    { "key": "startTime", "value": "" },
+    { "key": "endTime", "value": "" },
+    { "key": "cancelStartTime", "value": "" },
+    { "key": "cancelEndTime", "value": "" },
+    { "key": "noShowStartTime", "value": "" },
+    { "key": "noShowEndTime", "value": "" }
+  ],
+  "item": [
+    {
+      "name": "Authentication and Rooms",
+      "item": [
+        {
+          "name": "Reject unauthenticated API request",
+          "request": { "auth": { "type": "noauth" }, "method": "GET", "url": "{{baseUrl}}/api/rooms" },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('Unauthenticated request returns 401', () => pm.response.to.have.status(401));"] } }]
+        },
+        {
+          "name": "List rooms",
+          "request": { "method": "GET", "url": "{{baseUrl}}/api/rooms?page=0&size=20&sort=name,asc" },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('Room list returns 200', () => pm.response.to.have.status(200));", "pm.test('Room response is paged', () => pm.expect(pm.response.json()).to.have.property('content')); "] } }]
+        },
+        {
+          "name": "Create disposable room for CRUD",
+          "request": { "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\n  \"name\": \"{{crudRoomName}}\",\n  \"capacity\": 6,\n  \"hasProjector\": true,\n  \"hasWhiteboard\": false,\n  \"location\": \"Test floor\"\n}", "options": { "raw": { "language": "json" } } }, "url": "{{baseUrl}}/api/rooms" },
+          "event": [{ "listen": "prerequest", "script": { "type": "text/javascript", "exec": ["pm.collectionVariables.set('crudRoomName', `Postman CRUD ${Date.now()}`);"] } }, { "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('Room created with 201', () => pm.response.to.have.status(201));", "pm.collectionVariables.set('crudRoomId', pm.response.json().id);"] } }]
+        },
+        {
+          "name": "Get room by ID",
+          "request": { "method": "GET", "url": "{{baseUrl}}/api/rooms/{{crudRoomId}}" },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('Room detail returns 200', () => pm.response.to.have.status(200));", "pm.test('Projector amenity is present', () => pm.expect(pm.response.json().hasProjector).to.eql(true));"] } }]
+        },
+        {
+          "name": "Update room",
+          "request": { "method": "PUT", "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\n  \"name\": \"Postman CRUD Updated\",\n  \"capacity\": 8,\n  \"hasProjector\": true,\n  \"hasWhiteboard\": true,\n  \"location\": \"Test floor updated\"\n}", "options": { "raw": { "language": "json" } } }, "url": "{{baseUrl}}/api/rooms/{{crudRoomId}}" },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('Room update returns 200', () => pm.response.to.have.status(200));", "pm.test('Room changes are saved', () => pm.expect(pm.response.json().capacity).to.eql(8));"] } }]
+        },
+        {
+          "name": "Reject invalid room capacity",
+          "request": { "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\n  \"name\": \"Invalid room\",\n  \"capacity\": 0,\n  \"hasProjector\": false,\n  \"hasWhiteboard\": false,\n  \"location\": \"Test floor\"\n}", "options": { "raw": { "language": "json" } } }, "url": "{{baseUrl}}/api/rooms" },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('Invalid capacity returns 400', () => pm.response.to.have.status(400));", "pm.test('Validation details are returned', () => pm.expect(pm.response.json().validationErrors).to.have.property('capacity'));"] } }]
+        },
+        {
+          "name": "Delete disposable room",
+          "request": { "method": "DELETE", "url": "{{baseUrl}}/api/rooms/{{crudRoomId}}" },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('Room delete returns 204', () => pm.response.to.have.status(204));"] } }]
+        },
+        {
+          "name": "Create room for booking scenarios",
+          "request": { "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\n  \"name\": \"{{bookingRoomName}}\",\n  \"capacity\": 10,\n  \"hasProjector\": true,\n  \"hasWhiteboard\": true,\n  \"location\": \"Test floor\"\n}", "options": { "raw": { "language": "json" } } }, "url": "{{baseUrl}}/api/rooms" },
+          "event": [{ "listen": "prerequest", "script": { "type": "text/javascript", "exec": ["pm.collectionVariables.set('bookingRoomName', `Postman Booking ${Date.now()}`);"] } }, { "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('Booking room created', () => pm.response.to.have.status(201));", "pm.collectionVariables.set('bookingRoomId', pm.response.json().id);"] } }]
+        }
+      ]
+    },
+    {
+      "name": "Employee administration",
+      "item": [
+        {
+          "name": "List employees",
+          "request": { "method": "GET", "url": "{{baseUrl}}/api/employees?page=0&size=20&sort=name,asc" },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('Employee list returns 200', () => pm.response.to.have.status(200));", "pm.test('Employee response is paged', () => pm.expect(pm.response.json()).to.have.property('content'));"] } }]
+        },
+        {
+          "name": "Create disposable employee",
+          "event": [{ "listen": "prerequest", "script": { "type": "text/javascript", "exec": ["pm.collectionVariables.set('employeeEmail', `roombook-postman-${Date.now()}@example.test`);"] } }, { "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('Employee created with 201', () => pm.response.to.have.status(201));", "pm.collectionVariables.set('employeeId', pm.response.json().id);"] } }],
+          "request": { "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\n  \"name\": \"Postman Test Employee\",\n  \"email\": \"{{employeeEmail}}\",\n  \"department\": \"QA\",\n  \"role\": \"EMPLOYEE\",\n  \"password\": \"{{employeePassword}}\"\n}", "options": { "raw": { "language": "json" } } }, "url": "{{baseUrl}}/api/employees" }
+        },
+        {
+          "name": "Get employee by ID",
+          "request": { "method": "GET", "url": "{{baseUrl}}/api/employees/{{employeeId}}" },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('Employee detail returns 200', () => pm.response.to.have.status(200));", "pm.test('Password is never returned', () => pm.expect(pm.response.json()).not.to.have.property('password'));"] } }]
+        },
+        {
+          "name": "Update employee",
+          "request": { "method": "PUT", "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\n  \"name\": \"Postman Test Employee Updated\",\n  \"email\": \"{{employeeEmail}}\",\n  \"department\": \"QA Updated\",\n  \"role\": \"EMPLOYEE\",\n  \"password\": \"\"\n}", "options": { "raw": { "language": "json" } } }, "url": "{{baseUrl}}/api/employees/{{employeeId}}" },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('Employee update returns 200', () => pm.response.to.have.status(200));", "pm.test('Employee update saved', () => pm.expect(pm.response.json().department).to.eql('QA Updated'));"] } }]
+        },
+        {
+          "name": "Employee cannot access admin employee endpoint",
+          "request": { "auth": { "type": "basic", "basic": [{ "key": "username", "value": "{{employeeEmail}}", "type": "string" }, { "key": "password", "value": "{{employeePassword}}", "type": "string" }] }, "method": "GET", "url": "{{baseUrl}}/api/employees" },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('Employee is forbidden from employee administration', () => pm.response.to.have.status(403));"] } }]
+        }
+      ]
+    },
+    {
+      "name": "Booking lifecycle",
+      "item": [
+        {
+          "name": "Prepare booking time variables",
+          "request": { "method": "GET", "url": "{{baseUrl}}/api/rooms/{{bookingRoomId}}" },
+          "event": [{ "listen": "prerequest", "script": { "type": "text/javascript", "exec": ["const start = new Date(Date.now() + 60 * 60 * 1000);", "const end = new Date(start.getTime() + 60 * 60 * 1000);", "pm.collectionVariables.set('startTime', start.toISOString().slice(0, 19));", "pm.collectionVariables.set('endTime', end.toISOString().slice(0, 19));", "const cancelStart = new Date(Date.now() + 4 * 60 * 60 * 1000);", "const cancelEnd = new Date(cancelStart.getTime() + 60 * 60 * 1000);", "pm.collectionVariables.set('cancelStartTime', cancelStart.toISOString().slice(0, 19));", "pm.collectionVariables.set('cancelEndTime', cancelEnd.toISOString().slice(0, 19));"] } }, { "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('Booking room is available', () => pm.response.to.have.status(200));"] } }]
+        },
+        {
+          "name": "List bookings",
+          "request": { "method": "GET", "url": "{{baseUrl}}/api/bookings" },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('Booking list returns 200 and array', () => { pm.response.to.have.status(200); pm.expect(pm.response.json()).to.be.an('array'); });"] } }]
+        },
+        {
+          "name": "Create confirmed booking",
+          "request": { "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\n  \"roomId\": {{bookingRoomId}},\n  \"startTime\": \"{{startTime}}\",\n  \"endTime\": \"{{endTime}}\"\n}", "options": { "raw": { "language": "json" } } }, "url": "{{baseUrl}}/api/bookings" },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('Booking created with 201', () => pm.response.to.have.status(201));", "pm.test('Booking starts confirmed', () => pm.expect(pm.response.json().status).to.eql('CONFIRMED'));", "pm.collectionVariables.set('bookingId', pm.response.json().id);"] } }]
+        },
+        {
+          "name": "Get booking by ID",
+          "request": { "method": "GET", "url": "{{baseUrl}}/api/bookings/{{bookingId}}" },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('Booking detail returns 200', () => pm.response.to.have.status(200));", "pm.test('Organizer is the authenticated admin', () => pm.expect(pm.response.json().organizerName).to.exist);"] } }]
+        },
+        {
+          "name": "Availability reports occupied interval",
+          "request": { "method": "GET", "url": "{{baseUrl}}/api/bookings/availability?roomId={{bookingRoomId}}&startTime={{startTime}}&endTime={{endTime}}" },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('Occupied interval is unavailable', () => { pm.response.to.have.status(200); pm.expect(pm.response.json()).to.eql(false); });"] } }]
+        },
+        {
+          "name": "Reject overlapping confirmed booking",
+          "request": { "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\n  \"roomId\": {{bookingRoomId}},\n  \"startTime\": \"{{startTime}}\",\n  \"endTime\": \"{{endTime}}\"\n}", "options": { "raw": { "language": "json" } } }, "url": "{{baseUrl}}/api/bookings" },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('Overlap returns 409', () => pm.response.to.have.status(409));", "pm.test('Conflict response explains cause', () => pm.expect(pm.response.json().message).to.include('already booked'));"] } }]
+        },
+        {
+          "name": "Employee cannot view another employee booking",
+          "request": { "auth": { "type": "basic", "basic": [{ "key": "username", "value": "{{employeeEmail}}", "type": "string" }, { "key": "password", "value": "{{employeePassword}}", "type": "string" }] }, "method": "GET", "url": "{{baseUrl}}/api/bookings/{{bookingId}}" },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('Non-owner is forbidden', () => pm.response.to.have.status(403));"] } }]
+        },
+        {
+          "name": "Employee bookings are owner-scoped",
+          "request": { "auth": { "type": "basic", "basic": [{ "key": "username", "value": "{{employeeEmail}}", "type": "string" }, { "key": "password", "value": "{{employeePassword}}", "type": "string" }] }, "method": "GET", "url": "{{baseUrl}}/api/bookings" },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('Employee only sees own bookings', () => { pm.response.to.have.status(200); pm.expect(pm.response.json()).to.be.an('array').that.is.empty; });"] } }]
+        },
+        {
+          "name": "Delete disposable employee",
+          "request": { "method": "DELETE", "url": "{{baseUrl}}/api/employees/{{employeeId}}" },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('Employee delete returns 204', () => pm.response.to.have.status(204));"] } }]
+        },
+        {
+          "name": "Delete disposable employee",
+          "request": { "method": "DELETE", "url": "{{baseUrl}}/api/employees/{{employeeId}}" },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('Employee delete returns 204', () => pm.response.to.have.status(204));"] } }]
+        },
+        {
+          "name": "Check in to confirmed booking",
+          "request": { "method": "POST", "url": "{{baseUrl}}/api/bookings/{{bookingId}}/check-in" },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('Check-in returns 200', () => pm.response.to.have.status(200));", "pm.test('Checked-in flag is true', () => pm.expect(pm.response.json().checkedIn).to.eql(true));"] } }]
+        },
+        {
+          "name": "Create booking to cancel",
+          "request": { "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\n  \"roomId\": {{bookingRoomId}},\n  \"startTime\": \"{{cancelStartTime}}\",\n  \"endTime\": \"{{cancelEndTime}}\"\n}", "options": { "raw": { "language": "json" } } }, "url": "{{baseUrl}}/api/bookings" },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('Second booking created', () => pm.response.to.have.status(201));", "pm.collectionVariables.set('cancelBookingId', pm.response.json().id);"] } }]
+        },
+        {
+          "name": "Cancel booking",
+          "request": { "method": "POST", "url": "{{baseUrl}}/api/bookings/{{cancelBookingId}}/cancel" },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('Cancel returns 200 and CANCELLED', () => { pm.response.to.have.status(200); pm.expect(pm.response.json().status).to.eql('CANCELLED'); });"] } }]
+        },
+        {
+          "name": "Cancelled interval is available again",
+          "request": { "method": "GET", "url": "{{baseUrl}}/api/bookings/availability?roomId={{bookingRoomId}}&startTime={{cancelStartTime}}&endTime={{cancelEndTime}}" },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('Cancellation frees the interval', () => { pm.response.to.have.status(200); pm.expect(pm.response.json()).to.eql(true); });"] } }]
+        },
+        {
+          "name": "Cannot check in to cancelled booking",
+          "request": { "method": "POST", "url": "{{baseUrl}}/api/bookings/{{cancelBookingId}}/check-in" },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('Invalid state returns 409', () => pm.response.to.have.status(409));"] } }]
+        },
+        {
+          "name": "Room with booking history cannot be deleted",
+          "request": { "method": "DELETE", "url": "{{baseUrl}}/api/rooms/{{bookingRoomId}}" },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('Booking history protects room from deletion', () => pm.response.to.have.status(409));"] } }]
+        }
+      ]
+    },
+    {
+      "name": "No-show scheduler verification (manual fixture)",
+      "description": "Run Create future no-show fixture and copy noShowBookingId. The datasource uses serverTimezone=UTC while Java uses the host timezone; align the SQL stored times with the app-local LocalDateTime. With @server_offset_minutes = TIMESTAMPDIFF(MINUTE, UTC_TIMESTAMP(), NOW()), set start_time=TIMESTAMPADD(MINUTE, -@server_offset_minutes - 11, NOW()) and end_time=TIMESTAMPADD(MINUTE, -@server_offset_minutes + 49, NOW()), checked_in=FALSE, status='CONFIRMED' for that row. Then run Verify released booking after the scheduler's next minute tick.",
+      "item": [
+        {
+          "name": "Create future no-show fixture",
+          "request": { "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\n  \"roomId\": {{bookingRoomId}},\n  \"startTime\": \"{{noShowStartTime}}\",\n  \"endTime\": \"{{noShowEndTime}}\"\n}", "options": { "raw": { "language": "json" } } }, "url": "{{baseUrl}}/api/bookings" },
+          "event": [{ "listen": "prerequest", "script": { "type": "text/javascript", "exec": ["const start = new Date(Date.now() + 8 * 60 * 60 * 1000);", "const end = new Date(start.getTime() + 60 * 60 * 1000);", "pm.collectionVariables.set('noShowStartTime', start.toISOString().slice(0, 19));", "pm.collectionVariables.set('noShowEndTime', end.toISOString().slice(0, 19));"] } }, { "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('No-show fixture created', () => pm.response.to.have.status(201));", "pm.collectionVariables.set('noShowBookingId', pm.response.json().id);"] } }]
+        },
+        {
+          "name": "Verify released booking",
+          "request": { "method": "GET", "url": "{{baseUrl}}/api/bookings/{{noShowBookingId}}" },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('No-show released after scheduler tick', () => { pm.response.to.have.status(200); pm.expect(pm.response.json().status).to.eql('NO_SHOW_RELEASED'); });"] } }]
+        }
+      ]
+    }
+  ]
+}

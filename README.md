@@ -62,15 +62,19 @@ Errors use JSON with `timestamp`, `status`, `error`, `message`, `path`, and `val
 
 ## Postman scenarios
 
-Import `postman/RoomBook.postman_collection.json` and configure `baseUrl`, `username`, `password`, and `roomId`. Use an admin account for employee/room setup; use any employee to run the booking collection.
+Import `postman/RoomBook-full.postman_collection.json` and configure `baseUrl`, `adminUsername`, and `adminPassword`. The smaller `RoomBook.postman_collection.json` remains as a focused booking-flow example. Use an admin account for employee/room setup; the full collection creates and deletes a disposable employee.
 
 Run **Create booking successfully** followed immediately by **Reject overlapping booking**. The first request creates a confirmed booking one hour in the future and stores its ID; the second reuses the same room and time and expects HTTP 409. Run the **Cancel booking and verify slot is available** folder to verify cancellation returns HTTP 200 and makes that interval available again.
 
-The no-show scheduler checks every minute and releases confirmed bookings that remain unchecked-in at least ten minutes after their start. To verify this independently, insert a test booking whose start time is already 11 minutes past, then run the collection's **Verify no-show auto-release** request after the next scheduler pass. Set `noShowBookingId` to the inserted row's ID. For example, with existing room and employee IDs:
+The no-show scheduler checks every minute and releases confirmed bookings that remain unchecked-in at least ten minutes after their start. The full collection's no-show fixture request creates a future booking; record its `noShowBookingId`, set its database times to an app-local start at least 11 minutes in the past, then run **Verify released booking** after the next scheduler pass. Because this project sets `serverTimezone=UTC` while Java uses the host's local timezone, raw SQL `NOW()` can be shifted when read by the app. This SQL adjusts the stored time by the MySQL server's UTC offset; use existing room and employee IDs:
 
 ```sql
+SET @server_offset_minutes = TIMESTAMPDIFF(MINUTE, UTC_TIMESTAMP(), NOW());
 INSERT INTO bookings (room_id, organizer_id, start_time, end_time, status, checked_in, created_at)
-VALUES (1, 1, NOW() - INTERVAL 11 MINUTE, NOW() + INTERVAL 49 MINUTE, 'CONFIRMED', FALSE, NOW());
+VALUES (1, 1,
+   TIMESTAMPADD(MINUTE, -@server_offset_minutes - 11, NOW()),
+   TIMESTAMPADD(MINUTE, -@server_offset_minutes + 49, NOW()),
+   'CONFIRMED', FALSE, NOW());
 SELECT LAST_INSERT_ID();
 ```
 
