@@ -11,7 +11,6 @@ import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.PrePersist;
 import jakarta.persistence.Table;
-import jakarta.validation.constraints.Future;
 import jakarta.validation.constraints.NotNull;
 
 import java.time.LocalDateTime;
@@ -35,7 +34,6 @@ public class Booking {
     private Employee organizer;
 
     @NotNull
-    @Future
     private LocalDateTime startTime;
 
     @NotNull

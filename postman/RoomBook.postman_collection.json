@@ -1,0 +1,144 @@
+{
+  "info": {
+    "name": "RoomBook API",
+    "description": "Step 7 API checks. Configure baseUrl, username, password, and roomId. Run the no-show verification separately with noShowBookingId set to an overdue, unchecked-in booking; see README.md for setup.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "auth": {
+    "type": "basic",
+    "basic": [
+      { "key": "username", "value": "{{username}}", "type": "string" },
+      { "key": "password", "value": "{{password}}", "type": "string" }
+    ]
+  },
+  "variable": [
+    { "key": "baseUrl", "value": "http://localhost:8080" },
+    { "key": "username", "value": "admin@example.com" },
+    { "key": "password", "value": "" },
+    { "key": "roomId", "value": "1" },
+    { "key": "bookingId", "value": "" },
+    { "key": "noShowBookingId", "value": "" }
+  ],
+  "item": [
+    {
+      "name": "Create booking successfully",
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const start = new Date(Date.now() + 60 * 60 * 1000);",
+              "const end = new Date(start.getTime() + 60 * 60 * 1000);",
+              "pm.environment.set('startTime', start.toISOString().slice(0, 19));",
+              "pm.environment.set('endTime', end.toISOString().slice(0, 19));"
+            ]
+          }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Booking created', () => pm.response.to.have.status(201));",
+              "const response = pm.response.json();",
+              "pm.environment.set('bookingId', response.id);",
+              "pm.test('Booking is confirmed', () => pm.expect(response.status).to.eql('CONFIRMED'));"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"roomId\": {{roomId}},\n  \"startTime\": \"{{startTime}}\",\n  \"endTime\": \"{{endTime}}\"\n}",
+          "options": { "raw": { "language": "json" } }
+        },
+        "url": "{{baseUrl}}/api/bookings"
+      }
+    },
+    {
+      "name": "Reject overlapping booking",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Overlap returns conflict', () => pm.response.to.have.status(409));",
+              "pm.test('Conflict message is clear', () => pm.expect(pm.response.json().message).to.include('already booked'));"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"roomId\": {{roomId}},\n  \"startTime\": \"{{startTime}}\",\n  \"endTime\": \"{{endTime}}\"\n}",
+          "options": { "raw": { "language": "json" } }
+        },
+        "url": "{{baseUrl}}/api/bookings"
+      }
+    },
+    {
+      "name": "Cancel booking and verify slot is available",
+      "item": [
+        {
+          "name": "Cancel booking",
+          "event": [{
+            "listen": "test",
+            "script": {
+              "type": "text/javascript",
+              "exec": [
+                "pm.test('Booking cancelled', () => pm.response.to.have.status(200));",
+                "pm.test('Status is CANCELLED', () => pm.expect(pm.response.json().status).to.eql('CANCELLED'));"
+              ]
+            }
+          }],
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/api/bookings/{{bookingId}}/cancel"
+          }
+        },
+        {
+          "name": "Check availability after cancellation",
+          "event": [{
+            "listen": "test",
+            "script": {
+              "type": "text/javascript",
+              "exec": ["pm.test('Cancelled slot is free', () => pm.expect(pm.response.json()).to.eql(true));"]
+            }
+          }],
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/bookings/availability?roomId={{roomId}}&startTime={{startTime}}&endTime={{endTime}}"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Verify no-show auto-release",
+      "event": [{
+        "listen": "test",
+        "script": {
+          "type": "text/javascript",
+          "exec": [
+            "pm.test('Booking was auto-released', () => {",
+              "  const booking = pm.response.json().find(item => String(item.id) === String(pm.environment.get('noShowBookingId')));",
+            "  pm.expect(booking).to.exist;",
+            "  pm.expect(booking.status).to.eql('NO_SHOW_RELEASED');",
+            "});"
+          ]
+        }
+      }],
+      "request": {
+        "method": "GET",
+        "url": "{{baseUrl}}/api/bookings"
+      }
+    }
+  ]
+}
